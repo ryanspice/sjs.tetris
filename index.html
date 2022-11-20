@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html >
+    <head>
+        <meta charset="UTF-8">
+    </head>
+    <body>
+        <script rel=prefetch type="application/x-javascript" src="spice.js"></script>
+        <script rel=prefetch type="application/x-javascript" src="tetris.js"></script>
+        <script rel=prefetch type="text/javascript">
+			
+		//Initialize time variables
+		var WAIT_TIME = 600;
+		var mTime1 = new Date();
+		var mTime2 = new Date();
+			
+		//Initialize App, OnLoad
+        App.OnLoad = function(){
+			
+			//Set document title, canvas resolution.
+            App.Init("Tetris - Spice.js",320,480);
+			
+			//Set canvas background colour
+			App.canvas.background_set("#81b1d9");
+			
+        }
+		
+		//Main state prototype
+        _Main.prototype = {
+			
+			//State name
+            name:"Menu",
+			
+			//Target positions
+			targetX:0,
+			targetY:0,
+			
+			//State initilization 
+            init:function() {
+				
+				//App width and height
+                this.w = this.app.client.setWidth;
+                this.h = this.app.client.setHeight;
+				
+				//Position
+                this.x = 0;
+                this.y = 0;
+				
+				
+				//Background offset
+				this.backgroundX = 0;
+				
+				//Tetris board data
+				this.mPieces = Object.create(Pieces);
+				this.mBoard = Object.create(Board);
+				this.mBoard.Pieces = this.mPieces;
+				this.mBoard.mScreenHeight = this.h;
+                
+				//Tetris game init
+				this.Game = Game;   
+				this.Game.InitGame(this.mPieces,this.mBoard,this.h);
+				
+				//Target position
+				this.targetX = this.Game.mPosX;
+				this.targetY = this.Game.mPosX;
+				
+				//Get Spice.js Clamp
+				this.Clamp = this.app.client.Math.Clamp;
+				
+				//Append favicon
+				this.app.ext.metatag.metaAppend(this.app.ext.metatag.metaLink("icon.png","shortcut icon","image/png"));
+
+				//Snap to top, scale height only 
+                this.app.ext.top();
+				
+				//Load graphics
+				this.clouds = new Array(4);
+				this.clouds[0] = this.graphics.load("cloud1");
+				this.clouds[1] = this.graphics.load("cloud2");
+				this.clouds[2] = this.graphics.load("cloud3");
+				this.clouds[3] = this.graphics.load("cloud4");
+				
+            	return true;
+            },
+            update:function() {
+				mTime2 = new Date();
+				if ((mTime2 - mTime1) > WAIT_TIME)
+				{
+					if (this.mBoard.IsPossibleMovement (this.Game.mPosX, this.Game.mPosY + 1, this.Game.mPiece, this.Game.mRotation))
+						{
+							this.Game.mPosY++;
+						}
+						else
+						{
+							this.mBoard.StorePiece (this.Game.mPosX, this.Game.mPosY, this.Game.mPiece, this.Game.mRotation);
+
+							this.mBoard.DeletePossibleLines();
+
+							if (this.mBoard.IsGameOver())
+							{
+								
+							}
+
+							this.Game.CreateNewPiece();
+						}
+					mTime1 = new Date();
+				}
+				
+				
+				// ----- Input -----
+				
+				if (this.app.ext.input.released)
+				{
+					var c = this.Clamp(this.app.ext.input.horizontal,-1,1);
+					var r = 45*this.app.client.scale;
+					if ((this.app.ext.input.dist.x>r)||(this.app.ext.input.dist.x<-r))
+						if (this.mBoard.IsPossibleMovement (this.Game.mPosX + c, this.Game.mPosY, this.Game.mPiece, this.Game.mRotation))
+							this.targetX+=c;
+					
+					var c = this.Clamp(this.app.ext.input.vertical,-1,1);
+					if ((this.app.ext.input.dist.y<-r))
+						if (this.mBoard.IsPossibleMovement (Game.mPosX, Game.mPosY, Game.mPiece, (Game.mRotation + 1) % 4))
+							Game.mRotation = (Game.mRotation + 1) % 4;
+					
+					if ((this.app.ext.input.dist.y>r))
+					{
+						 // Check collision from up to down
+						while (this.mBoard.IsPossibleMovement(this.Game.mPosX, this.Game.mPosY, this.Game.mPiece, this.Game.mRotation)) { this.Game.mPosY++; }
+
+						this.mBoard.StorePiece (this.Game.mPosX, this.Game.mPosY - 1, this.Game.mPiece, this.Game.mRotation);
+
+						this.mBoard.DeletePossibleLines ();
+
+						if (this.mBoard.IsGameOver())
+						{
+							this.init();	
+						}
+
+						this.Game.CreateNewPiece();	
+					}
+				}
+					
+				
+				var mKey = this.app.ext.input.codedown;
+						if (this.mBoard.IsPossibleMovement (this.Game.mPosX + 0.25, this.Game.mPosY, this.Game.mPiece, this.Game.mRotation))
+				if (this.Game.mPosX<this.targetX)
+					this.Game.mPosX+=0.25;
+						if (this.mBoard.IsPossibleMovement (this.Game.mPosX - 0.25, this.Game.mPosY, this.Game.mPiece, this.Game.mRotation))
+				if (this.Game.mPosX>this.targetX)
+					this.Game.mPosX-=0.25;
+				
+				if (this.app.ext.input.getReleased())
+				switch (mKey)
+				{
+					case ("rightarrow"): 
+						if (this.mBoard.IsPossibleMovement (this.Game.mPosX + 1, this.Game.mPosY, this.Game.mPiece, this.Game.mRotation))
+							this.targetX ++;
+					break;
+					case ("leftarrow"): 
+						if (this.mBoard.IsPossibleMovement (this.Game.mPosX - 1, this.Game.mPosY, this.Game.mPiece, this.Game.mRotation))
+							this.targetX --;
+					break;
+
+					case ("downarrow"):
+						if (this.mBoard.IsPossibleMovement (this.Game.mPosX, this.Game.mPosY + 1, this.Game.mPiece, this.Game.mRotation))
+							this.Game.mPosY++;  
+					break;
+					case ("space"):
+						    // Check collision from up to down
+							while (this.mBoard.IsPossibleMovement(this.Game.mPosX, this.Game.mPosY, this.Game.mPiece, this.Game.mRotation)) { this.Game.mPosY++; }
+
+							this.mBoard.StorePiece (this.Game.mPosX, this.Game.mPosY - 1, this.Game.mPiece, this.Game.mRotation);
+
+							this.mBoard.DeletePossibleLines ();
+
+							if (this.mBoard.IsGameOver())
+							{
+								this.init();	
+							}
+
+							this.Game.CreateNewPiece();
+						break;
+					case ("uparrow"):
+						
+						if (this.mBoard.IsPossibleMovement (Game.mPosX, Game.mPosY, Game.mPiece, (Game.mRotation + 1) % 4))
+							Game.mRotation = (Game.mRotation + 1) % 4;
+							
+					break;
+				}
+				this.backgroundX -= 0.1*this.app.client.delta;
+            return true;
+            },
+            draw:function() {
+				for(var i=4;i>0;--i)
+				{
+					var w = Math.sin(this.backgroundX/360)*100;
+					this.visuals.image_ext(this.clouds[i-1],(i%2==0?w:-w),0,1,0.5,1);
+				}
+				this.Game.DrawScene();
+            return true;
+            }
+        };
+        </script>
+        <canvas id="canvas"></canvas>
+        <canvas id="buffer"></canvas>
+    </body>
+</html>
